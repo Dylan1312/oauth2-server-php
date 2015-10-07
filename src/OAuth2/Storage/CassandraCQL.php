@@ -104,11 +104,20 @@ class CassandraCQL implements AuthorizationCodeInterface,
     protected function setValue($key, $value, $expire = 0)
     {
         $str = json_encode($value);
-        $sql = "UPDATE ".$this->config['column_family_data']." SET data='".$str."' WHERE key='".$key."'";
+        $sql = "UPDATE ".$this->config['column_family_data'];
+
+        if($expire>0)
+        {
+            $seconds = ($expire - time()) > 0 ? $expire - time() : 0;
+            $sql .= " USING TTL ".$seconds;
+        }
+        $sql .= " SET data='".$str."' WHERE key='".$key."'";
+
         $this->getSession()->execute(new \Cassandra\SimpleStatement($sql));
+
         return true;
     }
-
+    
     protected function expireValue($key)
     {
         $sql = "DELETE FROM ".$this->config['column_family_data']." WHERE key='".$key."' ";
